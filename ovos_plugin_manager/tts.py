@@ -41,6 +41,25 @@ class OVOSTTSFactory:
     }
 
     @staticmethod
+    def get_class(config=None):
+        """Factory method to get a TTS engine class based on configuration.
+
+        The configuration file ``mycroft.conf`` contains a ``tts`` section with
+        the name of a TTS module to be read by this method.
+
+        "tts": {
+            "module": <engine_name>
+        }
+        """
+        config = config or get_tts_config()
+        tts_module = config.get("module") or "dummy"
+        if tts_module == "dummy":
+            return TTS
+        if tts_module in OVOSTTSFactory.MAPPINGS:
+            tts_module = OVOSTTSFactory.MAPPINGS[tts_module]
+        return load_tts_plugin(tts_module)
+
+    @staticmethod
     def create(config=None):
         """Factory method to create a TTS engine based on configuration.
 
@@ -51,25 +70,31 @@ class OVOSTTSFactory:
             "module": <engine_name>
         }
         """
-        config = config or read_mycroft_config()
-        lang = config.get("lang", "en-us")
-        if "tts" in config:
-            config = config["tts"]
-        tts_module = config.get('module', 'mimic')
-        if tts_module == "dummy":
-            return TTS()
-        tts_config = config.get(tts_module, {})
-        tts_lang = tts_config.get('lang', lang)
+        tts_config = get_tts_config(config)
+        tts_lang = tts_config["lang"]
+        tts_module = tts_config.get('module', 'mimic')
         try:
-            if tts_module in OVOSTTSFactory.MAPPINGS:
-                tts_module = OVOSTTSFactory.MAPPINGS[tts_module]
-            clazz = load_tts_plugin(tts_module)
-            if clazz is None:
-                raise ValueError(f'TTS plugin {tts_module} not found')
-            LOG.info(f'Loaded plugin {tts_module}')
+            clazz = OVOSTTSFactory.get_class(tts_config)
+            LOG.info(f'Found plugin {tts_module}')
             tts = clazz(tts_lang, tts_config)
             tts.validator.validate()
+            LOG.info(f'Loaded plugin {tts_module}')
         except Exception:
             LOG.exception('The selected TTS plugin could not be loaded.')
             raise
         return tts
+
+
+def get_tts_config(config=None):
+    try:
+        config = config or read_mycroft_config()
+    except:
+        config = {}
+    lang = config.get("lang", "en-us")
+    if "tts" in config and "module" in config["tts"]:
+        config = config["tts"]
+    tts_module = config.get('module') or "dummy"
+    tts_config = config.get(tts_module, {})
+    tts_config["lang"] = tts_config.get('lang') or lang
+    tts_config["module"] = tts_module
+    return tts_config

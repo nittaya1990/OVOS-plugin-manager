@@ -17,15 +17,23 @@ from ovos_utils.log import LOG
 
 
 class PluginTypes(str, Enum):
-    SKILL = "holmesol.plugin.skill"
+    PHAL = "ovos.plugin.phal"
+    SKILL = "ovos.plugin.skill"
+    VAD = "ovos.plugin.VAD"
+    PHONEME = "ovos.plugin.g2p"
     AUDIO = 'mycroft.plugin.audioservice'
     STT = 'mycroft.plugin.stt'
     TTS = 'mycroft.plugin.tts'
     WAKEWORD = 'mycroft.plugin.wake_word'
     TRANSLATE = "neon.plugin.lang.translate"
     LANG_DETECT = "neon.plugin.lang.detect"
-    INTENT = "chatterbox.plugin.intentBox"
-    TRIGGER = "chatterbox.plugin.trigger"
+    UTTERANCE_TRANSFORMER = "neon.plugin.text"
+    AUDIO_TRANSFORMER = "neon.plugin.audio"
+    QUESTION_SOLVER = "neon.plugin.solver"
+    COREFERENCE_SOLVER = "intentbox.coreference"
+    UTTERANCE_SEGMENTATION = "intentbox.segmentation"
+    TOKENIZATION = "intentbox.tokenization"
+    POSTAG = "intentbox.postag"
 
 
 def find_plugins(plug_type=None):
@@ -46,7 +54,10 @@ def find_plugins(plug_type=None):
         plugs = plug_type
     for plug in plugs:
         for entry_point in pkg_resources.iter_entry_points(plug):
-            entrypoints[entry_point.name] = entry_point.load()
+            try:
+                entrypoints[entry_point.name] = entry_point.load()
+            except Exception as e:
+                LOG.exception(f"Failed to load plugin entry point {entry_point}")
     return entrypoints
 
 

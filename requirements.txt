@@ -1,4 +1,0 @@
-ovos_utils>=0.0.12a9
-requests
-phoneme_guesser
-memory-tempfile
